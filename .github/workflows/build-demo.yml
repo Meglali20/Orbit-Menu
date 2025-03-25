@@ -50,6 +50,16 @@ jobs:
             echo "version_tag=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
           fi
 
+      - name: Fetch Latest Release URL
+        id: get_release_url
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_URL=$(curl -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/latest" | \
+            jq -r .upload_url)
+          echo "release_url=$RELEASE_URL" >> $GITHUB_OUTPUT
+
       - name: Rename APK
         run: |
           mkdir -p release-artifacts
@@ -60,7 +70,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url || '' }}
+          upload_url: ${{ steps.get_release_url.outputs.release_url }}
           asset_path: release-artifacts/orbit-menu-demo-${{ steps.release_info.outputs.version_tag }}.apk
           asset_name: orbit-menu-demo-${{ steps.release_info.outputs.version_tag }}.apk
           asset_content_type: application/vnd.android.package-archive
