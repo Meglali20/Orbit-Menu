@@ -12,6 +12,9 @@ jobs:
   build-demo-apk:
     name: Build and attach demo APK to release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4.2.2
@@ -38,24 +41,33 @@ jobs:
       - name: Build Release APK
         run: ./gradlew :app:assembleRelease
 
-      - name: Rename APK with timestamp
+      - name: Get release tag or generate timestamp
+        id: release_info
         run: |
-          TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "version_tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "version_tag=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Rename APK
+        run: |
           mkdir -p release-artifacts
-          cp app/build/outputs/apk/release/app-release-unsigned.apk release-artifacts/orbit-menu-demo-${TIMESTAMP}.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk release-artifacts/orbit-menu-demo-${{ steps.release_info.outputs.version_tag }}.apk
+
+      - name: Upload APK to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url || '' }}
+          asset_path: release-artifacts/orbit-menu-demo-${{ steps.release_info.outputs.version_tag }}.apk
+          asset_name: orbit-menu-demo-${{ steps.release_info.outputs.version_tag }}.apk
+          asset_content_type: application/vnd.android.package-archive
 
       - name: Upload APK as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: orbit-menu-demo-${TIMESTAMP}
+          name: orbit-menu-demo-${{ steps.release_info.outputs.version_tag }}
           path: release-artifacts/orbit-menu-demo-*.apk
           retention-days: 5
-
-      - name: Update GitHub release with demo APK (if release exists)
-        uses: softprops/action-gh-release@v1
-        if: github.event_name == 'release'
-        with:
-          files: release-artifacts/orbit-menu-demo-*.apk
-          tag_name: ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
