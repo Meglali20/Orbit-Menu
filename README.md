@@ -2,6 +2,8 @@
 
 OrbitMenu is a cutting-edge Android library that transforms menu navigation with an immersive 3D orbital interface. Create engaging, interactive user experiences with smooth circular menu interactions.
 
+https://github.com/user-attachments/assets/ca252980-dc6e-44af-a1fa-2b459217f431
+
 ## Features
 
 - Smooth 3D orbital rotation for menu items
